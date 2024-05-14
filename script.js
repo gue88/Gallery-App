@@ -6,6 +6,8 @@ const overlay = document.getElementById("overlay");
 const overlayImage = document.getElementById("overlayImage");
 
 let observer;
+let currentImageIndex = 0;
+let images = [];
 
 function handleFolderSelect(event) {
   const files = Array.from(event.target.files).filter((file) =>
@@ -19,7 +21,7 @@ function handleFolderSelect(event) {
     fragment.appendChild(container);
   });
 
-  gallery.innerHTML = ""; // Clear existing images
+  gallery.innerHTML = "";
   gallery.appendChild(fragment);
 
   initializeObserver();
@@ -31,7 +33,7 @@ function createImageElement(file) {
 
   const img = new Image();
   img.src = URL.createObjectURL(file);
-  img.loading = "lazy"; // Lazy loading
+  img.loading = "lazy";
   img.addEventListener("click", () => expandImage(img));
 
   container.appendChild(img);
@@ -44,7 +46,7 @@ function initializeObserver() {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
           const img = entry.target;
-          img.src = img.src; // Trigger the lazy loading
+          img.src = img.src;
           img.classList.add("lazy-loaded");
           observer.unobserve(img);
         }
@@ -61,12 +63,32 @@ function expandImage(img) {
   overlayImage.src = img.src;
   overlay.classList.add("active");
   overlay.addEventListener("click", closeImage);
+
+  images = Array.from(gallery.querySelectorAll("img"));
+  currentImageIndex = images.indexOf(img);
+
+  document.addEventListener("keydown", handleKeyDown);
 }
 
 function closeImage(event) {
   if (event.target !== overlayImage) {
     overlay.classList.remove("active");
     overlayImage.src = "";
+    document.removeEventListener("keydown", handleKeyDown);
+  }
+}
+
+function handleKeyDown(event) {
+  if (overlay.classList.contains("active")) {
+    if (event.key === "ArrowLeft" && currentImageIndex > 0) {
+      currentImageIndex--;
+    } else if (
+      event.key === "ArrowRight" &&
+      currentImageIndex < images.length - 1
+    ) {
+      currentImageIndex++;
+    }
+    overlayImage.src = images[currentImageIndex].src;
   }
 }
 
