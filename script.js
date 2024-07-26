@@ -8,31 +8,53 @@ const overlayImage = document.getElementById("overlayImage");
 let observer;
 let currentImageIndex = 0;
 let images = [];
+let allFiles = [];
+const BATCH_SIZE = 100;
+let currentBatch = 0;
+let isLoadingBatch = false;
 
-function handleFolderSelect(event) {
-  const files = Array.from(event.target.files).filter((file) =>
+async function handleFolderSelect(event) {
+  gallery.innerHTML = "";
+  allFiles = Array.from(event.target.files).filter((file) =>
     file.type.startsWith("image/")
   );
-  const shuffledFiles = fisherYatesShuffle(files);
-  const fragment = document.createDocumentFragment();
-
-  shuffledFiles.forEach((file) => {
-    const container = createImageElement(file);
-    fragment.appendChild(container);
-  });
-
-  gallery.innerHTML = "";
-  gallery.appendChild(fragment);
-
+  allFiles = fisherYatesShuffle(allFiles);
+  currentBatch = 0;
+  await loadNextBatch();
   initializeObserver();
+  window.addEventListener("scroll", handleScroll);
 }
 
-function createImageElement(file) {
+async function loadNextBatch() {
+  if (isLoadingBatch || currentBatch * BATCH_SIZE >= allFiles.length) return;
+
+  isLoadingBatch = true;
+  const start = currentBatch * BATCH_SIZE;
+  const end = Math.min((currentBatch + 1) * BATCH_SIZE, allFiles.length);
+  const batch = allFiles.slice(start, end);
+
+  const fragment = document.createDocumentFragment();
+  for (const file of batch) {
+    const container = await createImageElement(file);
+    fragment.appendChild(container);
+  }
+
+  gallery.appendChild(fragment);
+  currentBatch++;
+  isLoadingBatch = false;
+
+  if (end < allFiles.length) {
+    requestAnimationFrame(loadNextBatch);
+  }
+}
+
+async function createImageElement(file) {
   const container = document.createElement("div");
   container.classList.add("image-container");
 
   const img = new Image();
-  img.src = URL.createObjectURL(file);
+  img.dataset.src = URL.createObjectURL(file);
+  img.alt = file.name;
   img.loading = "lazy";
   img.addEventListener("click", () => expandImage(img));
 
@@ -42,25 +64,44 @@ function createImageElement(file) {
 
 function initializeObserver() {
   if ("IntersectionObserver" in window) {
-    observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          const img = entry.target;
-          img.src = img.src;
-          img.classList.add("lazy-loaded");
-          observer.unobserve(img);
-        }
-      });
-    });
+    observer = new IntersectionObserver(
+      (entries, observer) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const img = entry.target;
+            img.src = img.dataset.src;
+            img.classList.add("lazy-loaded");
+            observer.unobserve(img);
+          }
+        });
+      },
+      { rootMargin: "200px" }
+    );
 
-    document.querySelectorAll('img[loading="lazy"]').forEach((img) => {
-      observer.observe(img);
-    });
+    observeImages();
   }
 }
 
+function observeImages() {
+  document
+    .querySelectorAll('img[loading="lazy"]:not(.lazy-loaded)')
+    .forEach((img) => {
+      observer.observe(img);
+    });
+}
+
+function handleScroll() {
+  if (
+    window.innerHeight + window.scrollY >=
+    document.body.offsetHeight - 1000
+  ) {
+    loadNextBatch();
+  }
+  observeImages();
+}
+
 function expandImage(img) {
-  overlayImage.src = img.src;
+  overlayImage.src = img.src || img.dataset.src;
   overlay.classList.add("active");
   overlay.addEventListener("click", closeImage);
 
@@ -88,7 +129,8 @@ function handleKeyDown(event) {
     ) {
       currentImageIndex++;
     }
-    overlayImage.src = images[currentImageIndex].src;
+    const currentImg = images[currentImageIndex];
+    overlayImage.src = currentImg.src || currentImg.dataset.src;
   }
 }
 
