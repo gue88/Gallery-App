@@ -64,8 +64,8 @@ async function createMediaElement(file) {
   if (file.type.startsWith("image/")) {
     media.addEventListener("click", () => expandImage(media));
   } else {
-    media.muted = true;
-    media.loop = true;
+    media.muted = false;
+    media.loop = false;
     media.playsInline = true;
     media.controls = true;
   }
