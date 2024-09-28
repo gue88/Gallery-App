@@ -1,7 +1,3 @@
-Certainly! Below is a sample `README.md` file for your media gallery app. This file provides an overview of the app, instructions for setup and use, and details about how the app works.
-
----
-
 # Media Gallery App
 
 This is a web-based media gallery that allows users to upload and view images and videos from a local folder. The app dynamically loads media in batches, using lazy loading to optimize performance, and features a full-screen overlay for viewing individual media items.
