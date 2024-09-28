@@ -34,7 +34,7 @@ img,
 video {
   width: 100%;
   height: auto; /* Maintain natural aspect ratio */
-  object-fit: cover; /* Crops image to fit container */
+  object-fit: contain; /* Crops image to fit container */
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.5s ease-out;
@@ -65,7 +65,7 @@ video.lazy-loaded {
 
 .overlay img {
   max-width: auto; /* Ensure image fits within the viewport width */
-  max-height: 95%; /* Ensure image fits within the viewport height */
+  max-height: 100vh; /* Ensure image fits within the viewport height */
   object-fit: contain; /* Prevent image from being cut off */
   opacity: 1; /* Ensure image is visible */
   pointer-events: none;
