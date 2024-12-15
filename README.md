@@ -1,4 +1,3 @@
-````markdown
 # Image Gallery App
 
 This **Image Gallery App** allows users to upload and view media files (images and videos) from their local system. It efficiently handles large numbers of files through lazy loading, infinite scrolling, and batch processing. Images are integrated with a lightbox for enhanced viewing.
@@ -24,7 +23,6 @@ This **Image Gallery App** allows users to upload and view media files (images a
   ```html
   <script src="https://cdn.jsdelivr.net/npm/fslightbox/index.js"></script>
   ```
-````
 
 ### Installation
 
