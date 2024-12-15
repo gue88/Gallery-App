@@ -36,7 +36,6 @@ export class GalleryManager {
     this.folderInput.addEventListener("change", (e) =>
       this.handleFolderSelect(e)
     );
-    this.gallery.addEventListener("click", (e) => this.handleGalleryClick(e));
     this.gallery.addEventListener("scroll", () => this.handleScroll());
   }
 
