@@ -10,7 +10,7 @@ body {
   ); /* Flexible columns */
   grid-gap: 5px; /* Space between images/videos */
   justify-items: center; /* Center the images/videos */
-  margin: 20px;
+  margin: 10px;
 }
 
 #folderInput {
@@ -18,7 +18,6 @@ body {
   margin: 5px;
   border: 1px solid white;
   cursor: pointer;
-  font-weight: bold;
 }
 
 .media-container {
@@ -37,36 +36,10 @@ video {
   object-fit: contain; /* Crops image to fit container */
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.5s ease-out;
+  transition: opacity 0.5s ease;
 }
 
 img.lazy-loaded,
 video.lazy-loaded {
   opacity: 1; /* Fade in effect once lazy-loaded */
-}
-
-.overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.8);
-  z-index: 999;
-  display: none;
-  justify-content: center;
-  align-items: center;
-  backdrop-filter: blur(4px);
-}
-
-.overlay.active {
-  display: flex;
-}
-
-.overlay img {
-  max-width: auto; /* Ensure image fits within the viewport width */
-  max-height: 100vh; /* Ensure image fits within the viewport height */
-  object-fit: contain; /* Prevent image from being cut off */
-  opacity: 1; /* Ensure image is visible */
-  pointer-events: none;
 }
