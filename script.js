@@ -1,6 +1,7 @@
 document
   .getElementById("folderInput")
   .addEventListener("change", handleFolderSelect);
+
 const gallery = document.getElementById("gallery");
 const overlay = document.getElementById("overlay");
 const overlayImage = document.getElementById("overlayImage");
@@ -9,23 +10,27 @@ let observer;
 let currentImageIndex = 0;
 let images = [];
 let allFiles = [];
+let mediaElements = []; // Store all references to created media elements
 const BATCH_SIZE = 20;
 let currentBatch = 0;
 let isLoadingBatch = false;
 const BUFFER_SIZE = 300; // pixels above and below viewport to keep loaded
 const UNLOAD_DISTANCE = 500; // Distance at which media will be unloaded
 
+// Variables for requestAnimationFrame-based scroll handling
+let scrollRequested = false;
+
 async function handleFolderSelect(event) {
   gallery.innerHTML = "";
+  mediaElements = [];
   allFiles = Array.from(event.target.files).filter(
     (file) => file.type.startsWith("image/") || file.type.startsWith("video/")
   );
   allFiles = fisherYatesShuffle(allFiles);
   currentBatch = 0;
-  initializeObserver(); // Call observer initialization before loading media
-  // Load the first batch on folder select
+  initializeObserver();
   await loadNextBatch();
-  window.addEventListener("scroll", handleScroll);
+  window.addEventListener("scroll", requestScrollUpdate);
 }
 
 async function loadNextBatch() {
@@ -38,26 +43,27 @@ async function loadNextBatch() {
 
   const fragment = document.createDocumentFragment();
   for (const file of batch) {
-    const container = await createMediaElement(file);
+    const container = createMediaElement(file);
     fragment.appendChild(container);
   }
 
   gallery.appendChild(fragment);
+  // Only observe the newly added elements
+  observeMedia(batch.length);
   currentBatch++;
   isLoadingBatch = false;
-  // Start observing new media elements after loading a batch
-  observeMedia();
 }
 
-async function createMediaElement(file) {
+function createMediaElement(file) {
   const container = document.createElement("div");
   container.classList.add("media-container");
 
   const media = file.type.startsWith("image/")
     ? new Image()
     : document.createElement("video");
-  media.dataset.src = ""; // We'll set src when loading the media
-  media.file = file; // Store the file reference
+
+  media.dataset.src = "";
+  media.file = file;
   media.alt = file.name;
   media.loading = "lazy";
 
@@ -71,13 +77,15 @@ async function createMediaElement(file) {
   }
 
   container.appendChild(media);
+  mediaElements.push(media);
+
   return container;
 }
 
 function initializeObserver() {
   if ("IntersectionObserver" in window && !observer) {
     observer = new IntersectionObserver(
-      (entries, observer) => {
+      (entries) => {
         entries.forEach((entry) => {
           const media = entry.target;
           if (entry.isIntersecting) {
@@ -103,11 +111,7 @@ function initializeObserver() {
 }
 
 function preloadAdjacentMedia(media) {
-  const mediaElements = Array.from(
-    document.querySelectorAll(".media-container img, .media-container video")
-  );
   const index = mediaElements.indexOf(media);
-
   if (index > 0) {
     loadMedia(mediaElements[index - 1]);
   }
@@ -117,38 +121,43 @@ function preloadAdjacentMedia(media) {
 }
 
 function loadMedia(media) {
-  if (!media.src) {
-    // Ensure src is properly set when the media enters the viewport
+  if (!media.src && media.file) {
     media.src = URL.createObjectURL(media.file);
-    media.dataset.src = media.src; // Update dataset for consistency
+    media.dataset.src = media.src;
     media.classList.add("lazy-loaded");
   }
 }
 
 function unloadMedia(media) {
   if (media.src) {
-    // Revoke the object URL to free up memory
     URL.revokeObjectURL(media.src);
     media.removeAttribute("src");
     media.removeAttribute("data-src");
     media.classList.remove("lazy-loaded");
-
-    // Pause the video if it is a video element
     if (media.tagName.toLowerCase() === "video") {
       media.pause();
     }
   }
 }
 
-function observeMedia() {
-  document
-    .querySelectorAll(".media-container img, .media-container video")
-    .forEach((media) => {
-      observer.observe(media);
-    });
+function observeMedia(count) {
+  // Observe only the new elements added in the last batch
+  const newElements = mediaElements.slice(mediaElements.length - count);
+  newElements.forEach((media) => {
+    observer.observe(media);
+  });
 }
 
-function handleScroll() {
+// Scroll handling with requestAnimationFrame for performance
+function requestScrollUpdate() {
+  if (!scrollRequested) {
+    scrollRequested = true;
+    requestAnimationFrame(handleScrollFrame);
+  }
+}
+
+function handleScrollFrame() {
+  scrollRequested = false;
   if (
     window.innerHeight + window.scrollY >=
     document.body.offsetHeight - 1000
@@ -158,24 +167,20 @@ function handleScroll() {
 }
 
 function expandImage(img) {
-  // Recreate the object URL if needed
   if (!img.src) {
     img.src = URL.createObjectURL(img.file);
   }
   overlayImage.src = img.src;
   overlay.classList.add("active");
-
-  // Ensure only clicking on the overlay background closes the image
   overlay.addEventListener("click", closeImage);
 
-  images = Array.from(gallery.querySelectorAll("img"));
+  images = mediaElements.filter((el) => el.tagName.toLowerCase() === "img");
   currentImageIndex = images.indexOf(img);
 
   document.addEventListener("keydown", handleKeyDown);
 }
 
 function closeImage(event) {
-  // Close only if the click is not on the image itself
   if (event.target !== overlayImage) {
     overlay.classList.remove("active");
     overlayImage.src = "";
@@ -194,8 +199,8 @@ function handleKeyDown(event) {
     ) {
       currentImageIndex++;
     }
+
     const currentImg = images[currentImageIndex];
-    // Recreate the object URL if needed
     if (!currentImg.src) {
       currentImg.src = URL.createObjectURL(currentImg.file);
     }
